@@ -7,6 +7,9 @@ import (
 	"sort"
 )
 
+const CompatibilityHashRing int = 3
+const CompatibilityKatama int = 4
+
 type HashKey uint32
 type HashKeyOrder []HashKey
 
@@ -19,14 +22,20 @@ type HashRing struct {
 	sortedKeys []HashKey
 	nodes      []string
 	weights    map[string]int
+	replicas   int
 }
 
 func New(nodes []string) *HashRing {
+	return NewWithCompatibility(nodes, CompatibilityHashRing)
+}
+
+func NewWithCompatibility(nodes []string, replicas int) *HashRing {
 	hashRing := &HashRing{
 		ring:       make(map[HashKey]string),
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		weights:    make(map[string]int),
+		replicas:   replicas,
 	}
 	hashRing.generateCircle()
 	return hashRing
@@ -42,12 +51,15 @@ func NewWithWeights(weights map[string]int) *HashRing {
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		weights:    weights,
+		replicas:   CompatibilityHashRing,
 	}
 	hashRing.generateCircle()
 	return hashRing
 }
 
 func (h *HashRing) generateCircle() {
+	fmt.Println(h.replicas)
+	
 	totalWeight := 0
 	for _, node := range h.nodes {
 		if weight, ok := h.weights[node]; ok {
@@ -63,14 +75,14 @@ func (h *HashRing) generateCircle() {
 		if _, ok := h.weights[node]; ok {
 			weight = h.weights[node]
 		}
-
+		
 		factor := math.Floor(float64(40*len(h.nodes)*weight) / float64(totalWeight))
 
 		for j := 0; j < int(factor); j++ {
 			nodeKey := fmt.Sprintf("%s-%d", node, j)
 			bKey := hashDigest(nodeKey)
 
-			for i := 0; i < 3; i++ {
+			for i := 0; i < h.replicas; i++ {
 				key := hashVal(bKey[i*4 : i*4+4])
 				h.ring[key] = node
 				h.sortedKeys = append(h.sortedKeys, key)
@@ -170,6 +182,7 @@ func (h *HashRing) AddWeightedNode(node string, weight int) *HashRing {
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		weights:    weights,
+		replicas:   CompatibilityHashRing,
 	}
 	hashRing.generateCircle()
 	return hashRing
@@ -195,6 +208,7 @@ func (h *HashRing) RemoveNode(node string) *HashRing {
 		sortedKeys: make([]HashKey, 0),
 		nodes:      nodes,
 		weights:    weights,
+		replicas:   CompatibilityHashRing,
 	}
 	hashRing.generateCircle()
 	return hashRing
