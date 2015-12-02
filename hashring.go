@@ -58,8 +58,6 @@ func NewWithWeights(weights map[string]int) *HashRing {
 }
 
 func (h *HashRing) generateCircle() {
-	fmt.Println(h.replicas)
-	
 	totalWeight := 0
 	for _, node := range h.nodes {
 		if weight, ok := h.weights[node]; ok {
